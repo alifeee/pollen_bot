@@ -5,6 +5,7 @@ import asyncio
 from dotenv import load_dotenv
 from telegram import *
 from telegram.ext import *
+from pollenbot.forecast import get_regions
 from pollenbot.bothandlers.start import start_handler
 from pollenbot.bothandlers.unknown import unknown_command_handler
 from pollenbot.bothandlers.error import error_handler
@@ -34,8 +35,15 @@ def main():
     logger.info("Loaded user data: %s", all_user_data)
     loop.close()
 
+    async def add_regions_to_application(application: Application) -> None:
+        application.bot_data["regions"] = get_regions()
+
     application = (
-        Application.builder().token(API_KEY).persistence(persistent_data).build()
+        Application.builder()
+        .token(API_KEY)
+        .persistence(persistent_data)
+        .post_init(add_regions_to_application)
+        .build()
     )
 
     application.add_handler(start_handler)

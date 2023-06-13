@@ -33,10 +33,21 @@ def get_forecast(timeout=10):
     return forecast
 
 
+def get_regions(timeout=10):
+    """Calls get_forecast and strips away "pollenLevel" key."""
+    forecast = get_forecast(timeout=timeout)
+    for region in forecast:
+        del region["pollenLevel"]
+    return forecast
+
+
 def _main():
     """test get_forecast"""
     forecast = get_forecast()
-    print("forecast:\n", forecast)
+    for region in forecast:
+        print(region["regionName"])
+        print(region["pollenLevel"])
+        print()
 
 
 if __name__ == "__main__":
