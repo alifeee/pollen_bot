@@ -1,0 +1,9 @@
+# python
+/env
+**__pycache__**
+
+# secrets
+/.env
+
+# persistent data
+/bot_data.pickle
