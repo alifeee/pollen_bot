@@ -70,6 +70,7 @@ sudo apt install python3.10-venv
 python3 -m venv env
 source env/bin/activate
 pip install -r requirements.txt
+tmux new -s pollen_bot
 ```
 
 ### Move over secrets
@@ -83,7 +84,7 @@ scp .env root@...:~/python/pollen_bot/
 
 ```bash
 ssh root@...
-tmux attach <session id>
+tmux attach -t pollen_bot
 cd ~/python/pollen_bot
 source env/bin/activate
 python ./bot.py
@@ -99,13 +100,13 @@ tmux ls
 ### Attach to tmux session
 
 ```bash
-tmux attach -t 0
+tmux attach -t pollen_bot
 ```
 
 ### Kill tmux session
 
 ```bash
-tmux kill-session -t 0
+tmux kill-session -t pollen_bot
 ```
 
 ### Update
