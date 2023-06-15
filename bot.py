@@ -9,6 +9,7 @@ from pollenbot.forecast import get_regions
 from pollenbot.bothandlers.start import start_handler
 from pollenbot.bothandlers.unknown import unknown_command_handler
 from pollenbot.bothandlers.error import error_handler
+from pollenbot.remind import queue_reminder
 
 load_dotenv()
 try:
@@ -50,6 +51,21 @@ def main():
 
     application.add_handler(unknown_command_handler)
     application.add_error_handler(error_handler)
+
+    for user_id, user_data in all_user_data.items():
+        try:
+            reminders_on = user_data["reminders"]
+        except KeyError:
+            continue
+        if reminders_on:
+            if application.job_queue is None:
+                raise ValueError("Job queue not set in application")
+            queue_reminder(
+                application.job_queue,
+                user_id,
+                user_data=user_data,
+                send_now=True,
+            )
 
     application.run_polling()
 
