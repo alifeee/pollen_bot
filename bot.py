@@ -67,6 +67,14 @@ def main():
                 send_now=True,
             )
 
+    _ = application.bot.set_my_commands(
+        [
+            BotCommand("start", "Setup region/reminders"),
+            BotCommand("forecast", "Show this week's forecast"),
+            BotCommand("cancel", "Cancel current operation"),
+        ]
+    )
+
     application.run_polling()
 
 
