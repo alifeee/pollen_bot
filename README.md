@@ -28,6 +28,12 @@ pip install -r requirements.txt
 python ./bot.py
 ```
 
+### Run and run scheduled tasks on startup
+
+```bash
+python ./bot.py start
+```
+
 ## Telegram credentials
 
 To obtain an access token for telegram, see [help page](https://github.com/python-telegram-bot/python-telegram-bot/wiki/Introduction-to-the-API), but in essence, talk to the [BotFather](https://t.me/botfather).
