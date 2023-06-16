@@ -2,7 +2,8 @@
 from telegram import Update
 from telegram import *
 from telegram.ext import *
-from ..forecast import get_forecast
+from ..forecast import Forecast, get_forecasts, format_pollen_level
+import datetime
 
 _FORECAST_MESSAGE = """
 Today's pollen forecast in {}:
@@ -13,17 +14,44 @@ The rest of the week:
 """
 
 
-def _convert_pollen_short_to_long(short_pollen):
-    if short_pollen == "L":
-        return "Low"
-    elif short_pollen == "M":
-        return "Medium"
-    elif short_pollen == "H":
-        return "High"
-    elif short_pollen == "VH":
-        return "Very High"
-    else:
-        return "error"
+def get_forecast_message(forecasts: list[Forecast], region_id: str) -> str:
+    """Get the forecast message for a region.
+
+    Args:
+        region_id (str): Region ID
+
+    Raises:
+        ValueError: If region ID is not found in forecasts
+
+    Returns:
+        str: Forecast message
+    """
+    region_forecast = next(
+        (
+            reg_forecast
+            for reg_forecast in forecasts
+            if reg_forecast.region.id == region_id
+        ),
+        None,
+    )
+    if region_forecast is None:
+        raise ValueError(f"Region {region_id} not found in forecast")
+
+    region_name = region_forecast.region.name
+    days = region_forecast.days
+    pollen_levels = [format_pollen_level(day.pollen_level) for day in days]
+    days_names = [day.date.strftime("%A") for day in days]
+
+    return _FORECAST_MESSAGE.format(
+        region_name,
+        pollen_levels[0],
+        "\n".join(
+            [
+                f"{day_name}: {pollen_level}"
+                for day_name, pollen_level in zip(days_names[1:], pollen_levels[1:])
+            ]
+        ),
+    )
 
 
 async def _forecast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -36,28 +64,9 @@ async def _forecast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if region_id is None:
         await update.message.reply_text("No region set! Use /start")
         return
-    forecast = get_forecast()
-    region_forecast = next(
-        (reg_forecast for reg_forecast in forecast if reg_forecast["id"] == region_id),
-        None,
-    )
-    if region_forecast is None:
-        raise ValueError(f"Region {region_id} not found in forecast")
 
-    region_name = region_forecast["regionName"]
-    pollen_levels_symbols = region_forecast["pollenLevel"]
-    pollen_levels_words = [
-        _convert_pollen_short_to_long(pollen_level)
-        for pollen_level in pollen_levels_symbols
-    ]
-
-    await update.message.reply_text(
-        _FORECAST_MESSAGE.format(
-            region_name,
-            pollen_levels_words[0],
-            ", ".join(pollen_levels_words[1:]),
-        ),
-    )
+    forecasts = get_forecasts()
+    await update.message.reply_text(get_forecast_message(forecasts, region_id))
 
 
 forecast_handler = CommandHandler("forecast", _forecast)
