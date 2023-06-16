@@ -2,6 +2,7 @@
 import os
 import logging
 import asyncio
+import sys
 from dotenv import load_dotenv
 from telegram import *
 from telegram.ext import *
@@ -19,6 +20,11 @@ except KeyError as e:
     raise ValueError(
         "Please set the environment variable TELEGRAM_BOT_ACCESS_TOKEN"
     ) from e
+
+if len(sys.argv) > 1 and sys.argv[1] == "start":
+    run_on_startup = True
+else:
+    run_on_startup = False
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -66,7 +72,7 @@ def main():
                 application.job_queue,
                 user_id,
                 user_data=user_data,
-                send_now=True,
+                send_now=run_on_startup,
             )
 
     application.run_polling()
