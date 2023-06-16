@@ -4,14 +4,38 @@ from telegram import *
 from telegram.ext import CommandHandler
 from telegram.ext import *
 from .cancel import cancel_handler
+from ..forecast import PollenLevel, Region
 
-USER_CHOOSING_REGION = 0
-USER_CONFIRMING_REMINDERS = 1
-USER_CHOOSING_THRESHOLD = 2
+(
+    USER_CONFIRMING_USE,
+    USER_CHOOSING_REGION,
+    USER_CONFIRMING_REMINDERS,
+    USER_CHOOSING_THRESHOLD,
+) = range(4)
 
 _START_MESSAGE = """
 Achoo! I am a sage. I know all about pollen, thanks to my friend, Metfeld Officeton Esq.
-Let me know what region you're in and I can give you some forecasts!
+Would you like me to tell you about the pollen forecast?
+"""
+
+_INITIALISE_OPTION = """
+Let's do it!
+"""
+
+_DO_NOT_INITIALISE_OPTION = """
+Another time...
+"""
+
+_INITIALISE_MESSAGE = (
+    _START_MESSAGE
+    + """
+Great! What region are you in?
+"""
+)
+
+_DO_NOT_INITIALISE_MESSAGE = """
+okay :(
+use /start to try again when you're ready
 """
 
 _REMINDERS_MESSAGE = """
@@ -34,8 +58,11 @@ _YES_MESSAGE = """
 Super! What threshold would you like to set?
 """
 
-_THRESHOLD_OPTIONS = ["Medium", "High", "Very High"]
-_THRESHOLD_CORRESPONDS_TO = ["M", "H", "VH"]
+_THRESHOLD_OPTIONS = {
+    "Medium": PollenLevel.MEDIUM,
+    "High": PollenLevel.HIGH,
+    "Very High": PollenLevel.VERY_HIGH,
+}
 
 _THRESHOLD_MESSAGE = """
 Radical. I'll text you at 9am whenever the pollen count is {} or above.
@@ -43,95 +70,156 @@ You can also always use /forecast to check the next few days :)
 """
 
 
-async def _start(update: Update, _) -> int:
-    if update.message is not None:
-        await update.message.reply_text(_START_MESSAGE)
-        return USER_CHOOSING_REGION
+async def _start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if update.message is None:
+        raise ValueError("Update message should not be none")
+    regions: list[Region] = context.bot_data["regions"]
+    await update.message.reply_text(
+        _START_MESSAGE,
+        reply_markup=InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        _INITIALISE_OPTION, callback_data=_INITIALISE_OPTION
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        _DO_NOT_INITIALISE_OPTION,
+                        callback_data=_DO_NOT_INITIALISE_OPTION,
+                    )
+                ],
+            ]
+        ),
+    )
+    return USER_CONFIRMING_USE
 
-    raise ValueError("Update message should not be none")
 
+async def _confirm_use(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if update.callback_query is None:
+        raise ValueError("Update callback query should not be none")
 
-async def _confirm_region(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if update.message is not None:
-        # dict with regionName and id
-        allowed_regions = context.bot_data["regions"]
+    query = update.callback_query
+    await query.answer()
 
-        sent_region = update.message.text
-        for region in allowed_regions:
-            if sent_region in (region["regionName"], region["id"]):
-                set_region = region["id"]
-                if context.user_data is None:
-                    context.user_data = {}
-                context.user_data["region_id"] = set_region
-
-                await update.message.reply_text(
-                    _REMINDERS_MESSAGE.format(f"{region['id']}, {region['regionName']}")
-                )
-                return USER_CONFIRMING_REMINDERS
-
-        await update.message.reply_text(
-            f"Sorry, I don't know a region by the name:\n{update.message.text}."
+    if query.data == _INITIALISE_OPTION:
+        regions: list[Region] = context.bot_data["regions"]
+        await query.edit_message_text(
+            _INITIALISE_MESSAGE,
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton(region.name, callback_data=region.id)]
+                    for region in regions
+                ]
+            ),
         )
         return USER_CHOOSING_REGION
 
-    raise ValueError("Update message should not be none")
-
-
-async def _no_reminders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if update.message is not None:
-        if context.user_data is None:
-            context.user_data = {}
-        context.user_data["reminders"] = False
-
-        await update.message.reply_text(_NO_MESSAGE)
+    if query.data == _DO_NOT_INITIALISE_OPTION:
+        await query.edit_message_text(_DO_NOT_INITIALISE_MESSAGE)
         return ConversationHandler.END
 
-    raise ValueError("Update message should not be none")
+    else:
+        raise ValueError(f"Unrecognized option {query.data}")
+
+
+async def _confirm_region(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if update.callback_query is None:
+        raise ValueError("Update callback query should not be none")
+
+    query = update.callback_query
+    await query.answer()
+
+    regions: list[Region] = context.bot_data["regions"]
+    user_region_id = query.data
+    user_region = next(
+        (region for region in regions if region.id == user_region_id), None
+    )
+    if user_region is None:
+        raise ValueError(f"Region ID {user_region_id} not found in regions")
+    if context.user_data is None:
+        context.user_data = {}
+    context.user_data["region"] = user_region
+
+    await query.edit_message_text(
+        _REMINDERS_MESSAGE.format(f"{user_region.id}, {user_region.name}"),
+        reply_markup=InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(_YES_OPTION, callback_data=_YES_OPTION),
+                    InlineKeyboardButton(_NO_OPTION, callback_data=_NO_OPTION),
+                ]
+            ]
+        ),
+    )
+    return USER_CONFIRMING_REMINDERS
 
 
 async def _confirm_reminders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if update.message is not None:
+    if update.callback_query is None:
+        raise ValueError("Update query should not be none")
+
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == _NO_OPTION:
+        if context.user_data is None:
+            context.user_data = {}
+        context.user_data["reminders"] = False
+        await query.edit_message_text(_NO_MESSAGE)
+        return ConversationHandler.END
+
+    elif query.data == _YES_OPTION:
         if context.user_data is None:
             context.user_data = {}
         context.user_data["reminders"] = True
 
-        await update.message.reply_text(_YES_MESSAGE)
+        await query.edit_message_text(
+            _YES_MESSAGE,
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton(threshold_text, callback_data=threshold_text)]
+                    for threshold_text in _THRESHOLD_OPTIONS.keys()
+                ]
+            ),
+        )
         return USER_CHOOSING_THRESHOLD
 
-    raise ValueError("Update message should not be none")
+    else:
+        raise ValueError(f"Unrecognized option {query.data}")
 
 
 async def _confirm_threshold(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if update.message is not None:
-        desired_threshold = update.message.text
-        if desired_threshold not in _THRESHOLD_OPTIONS:
-            await update.message.reply_text(
-                f"Sorry, I don't know a threshold by the name:\n{update.message.text}."
-            )
-            return USER_CHOOSING_THRESHOLD
+    if update.callback_query is None:
+        raise ValueError("Update query should not be none")
 
-        if context.user_data is None:
-            context.user_data = {}
-        context.user_data["threshold"] = _THRESHOLD_CORRESPONDS_TO[
-            _THRESHOLD_OPTIONS.index(desired_threshold)
-        ]
+    query = update.callback_query
+    await query.answer()
 
-        await update.message.reply_text(_THRESHOLD_MESSAGE.format(desired_threshold))
-        return ConversationHandler.END
+    desired_threshold_text = query.data
+    if desired_threshold_text is None:
+        raise ValueError("Callback query data should not be none")
 
-    raise ValueError("Update message should not be none")
+    desired_threshold = _THRESHOLD_OPTIONS[desired_threshold_text]
+
+    if context.user_data is None:
+        context.user_data = {}
+    context.user_data["threshold"] = desired_threshold
+
+    await query.edit_message_text(_THRESHOLD_MESSAGE.format(desired_threshold))
+    return ConversationHandler.END
 
 
 start_handler = ConversationHandler(
     entry_points=[CommandHandler("start", _start)],
     states={
-        USER_CHOOSING_REGION: [MessageHandler(filters.TEXT, _confirm_region)],
+        USER_CONFIRMING_USE: [CallbackQueryHandler(_confirm_use)],
+        USER_CHOOSING_REGION: [CallbackQueryHandler(_confirm_region)],
         USER_CONFIRMING_REMINDERS: [
-            MessageHandler(filters.Regex(f"^{_YES_OPTION}$"), _confirm_reminders),
-            MessageHandler(filters.Regex(f"^{_NO_OPTION}$"), _no_reminders),
+            CallbackQueryHandler(_confirm_reminders),
         ],
         USER_CHOOSING_THRESHOLD: [
-            MessageHandler(filters.TEXT, _confirm_threshold),
+            CallbackQueryHandler(_confirm_threshold),
         ],
     },
     fallbacks=[cancel_handler],
