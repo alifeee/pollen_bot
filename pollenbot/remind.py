@@ -6,7 +6,7 @@ Functions for:
 import random
 import datetime
 from telegram.ext import ContextTypes, JobQueue
-from .forecast import get_forecast
+from .forecast import PollenLevel, get_forecast_for_region, get_forecasts
 
 greetings = [
     "Sup",
@@ -88,31 +88,24 @@ The rest of the week:
 """
 
 
-def _convert_pollen_short_to_long(short_pollen):
-    if short_pollen == "L":
-        return "Low"
-    elif short_pollen == "M":
-        return "Medium"
-    elif short_pollen == "H":
-        return "High"
-    elif short_pollen == "VH":
-        return "Very High"
-    else:
-        return "error"
-
-
-def _is_above_threshold(pollen_forecast, threshold):
+def _is_above_threshold(pollen_level: PollenLevel, threshold: PollenLevel) -> bool:
     # VH > H > M > L
-    if pollen_forecast == "VH":
+    if pollen_level == PollenLevel.VERY_HIGH:
         return True
-    elif pollen_forecast == "H" and threshold in ["H", "M", "L"]:
+    if pollen_level == PollenLevel.HIGH and threshold in [
+        PollenLevel.HIGH,
+        PollenLevel.MEDIUM,
+        PollenLevel.LOW,
+    ]:
         return True
-    elif pollen_forecast == "M" and threshold in ["M", "L"]:
+    if pollen_level == PollenLevel.MEDIUM and threshold in [
+        PollenLevel.MEDIUM,
+        PollenLevel.LOW,
+    ]:
         return True
-    elif pollen_forecast == "L" and threshold == "L":
+    if pollen_level == PollenLevel.LOW and threshold == PollenLevel.LOW:
         return True
-    else:
-        return False
+    return False
 
 
 async def _remind(context: ContextTypes.DEFAULT_TYPE):
@@ -129,40 +122,30 @@ async def _remind(context: ContextTypes.DEFAULT_TYPE):
         raise ValueError("context.job or context.job.chat_id is None")
     user = context.job.chat_id
 
-    user_data = context.job.data
-    region = user_data["region_id"]
+    user_data: dict = context.job.data
+    region_id = user_data["region_id"]
     threshold = user_data["threshold"]
-    print(f"reminding {user} about {region} with threshold {threshold}")
+
+    if region_id is None:
+        raise ValueError("region is None")
+    if threshold is None:
+        raise ValueError("threshold is None")
 
     greeting = random.choice(greetings)
 
-    forecast = get_forecast()
+    forecasts = get_forecasts()
+    forecast = get_forecast_for_region(forecasts, region_id)
+    if forecast is None:
+        raise ValueError(f"forecast for region {region_id} is None")
+    try:
+        today_forecast = forecast.days[0]
+    except IndexError as error:
+        raise ValueError("forecast is empty") from error
 
-    region_forecast = next(
-        (
-            region_forecast
-            for region_forecast in forecast
-            if region_forecast["id"] == region
-        ),
-        None,
-    )
-    if region_forecast is None:
-        raise ValueError(f"region {region} not found in forecast")
-
-    region_name = region_forecast["regionName"]
-    pollen_levels_symbols = region_forecast["pollenLevel"]
-    pollen_levels_words = [
-        _convert_pollen_short_to_long(pollen_level)
-        for pollen_level in pollen_levels_symbols
-    ]
-
-    if _is_above_threshold(pollen_levels_symbols[0], threshold):
+    if _is_above_threshold(today_forecast.pollen_level, threshold):
         await context.bot.send_message(
             chat_id=user,
             text=_REMINDER_MESSAGE.format(
                 greeting,
-                region_name,
-                pollen_levels_words[0],
-                ", ".join(pollen_levels_words[1:]),
             ),
         )
