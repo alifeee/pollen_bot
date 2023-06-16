@@ -7,6 +7,7 @@ import random
 import datetime
 from telegram.ext import ContextTypes, JobQueue
 from .forecast import PollenLevel, get_forecast_for_region, get_forecasts
+from .bothandlers.forecast import get_forecast_message
 
 greetings = [
     "Sup",
@@ -78,13 +79,7 @@ def cancel_reminder(job_queue: JobQueue, user: int):
 
 
 _REMINDER_MESSAGE = """
-{}! The pollen cometh.
-
-Today's pollen forecast in {}:
-{}
-
-The rest of the week:
-{}
+{}! The pollen cometh. {}
 """
 
 
@@ -125,7 +120,6 @@ async def _remind(context: ContextTypes.DEFAULT_TYPE):
     user_data: dict = context.job.data
     region_id = user_data["region_id"]
     threshold = user_data["threshold"]
-
     if region_id is None:
         raise ValueError("region is None")
     if threshold is None:
@@ -135,6 +129,7 @@ async def _remind(context: ContextTypes.DEFAULT_TYPE):
 
     forecasts = get_forecasts()
     forecast = get_forecast_for_region(forecasts, region_id)
+
     if forecast is None:
         raise ValueError(f"forecast for region {region_id} is None")
     try:
@@ -147,5 +142,6 @@ async def _remind(context: ContextTypes.DEFAULT_TYPE):
             chat_id=user,
             text=_REMINDER_MESSAGE.format(
                 greeting,
+                get_forecast_message(forecast),
             ),
         )
