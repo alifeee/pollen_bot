@@ -66,6 +66,7 @@ _THRESHOLD_OPTIONS = {
 
 _THRESHOLD_MESSAGE = """
 Radical. I'll text you at 9am whenever the pollen count is {} or above.
+Use /start again to change this.
 You can also always use /forecast to check the next few days :)
 """
 
