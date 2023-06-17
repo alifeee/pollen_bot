@@ -9,6 +9,7 @@ from telegram.ext import *
 from pollenbot.forecast import get_regions
 from pollenbot.bothandlers.start import start_handler
 from pollenbot.bothandlers.forecast import forecast_handler
+from pollenbot.bothandlers.help import help_handler
 from pollenbot.bothandlers.unknown import unknown_command_handler
 from pollenbot.bothandlers.error import error_handler
 from pollenbot.remind import queue_reminder
@@ -56,6 +57,7 @@ def main():
 
     application.add_handler(start_handler)
     application.add_handler(forecast_handler)
+    application.add_handler(help_handler)
 
     application.add_handler(unknown_command_handler)
     application.add_error_handler(error_handler)
