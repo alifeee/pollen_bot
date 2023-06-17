@@ -78,6 +78,19 @@ def format_pollen_level(pollen_level: PollenLevel) -> str:
     return "Unknown"
 
 
+def color_pollen_level(pollen_level: PollenLevel) -> str:
+    """Format a pollen level for display."""
+    if pollen_level == PollenLevel.LOW:
+        return "🟢"
+    if pollen_level == PollenLevel.MEDIUM:
+        return "🟡"
+    if pollen_level == PollenLevel.HIGH:
+        return "🟠"
+    if pollen_level == PollenLevel.VERY_HIGH:
+        return "🔴"
+    return "Unknown"
+
+
 class DayForecast:
     """A forecast for a day."""
 
