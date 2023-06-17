@@ -118,9 +118,9 @@ async def _remind(context: ContextTypes.DEFAULT_TYPE):
     user = context.job.chat_id
 
     user_data: dict = context.job.data
-    region_id = user_data["region_id"]
+    region = user_data["region"]
     threshold = user_data["threshold"]
-    if region_id is None:
+    if region is None:
         raise ValueError("region is None")
     if threshold is None:
         raise ValueError("threshold is None")
@@ -128,10 +128,10 @@ async def _remind(context: ContextTypes.DEFAULT_TYPE):
     greeting = random.choice(greetings)
 
     forecasts = get_forecasts()
-    forecast = get_forecast_for_region(forecasts, region_id)
+    forecast = get_forecast_for_region(forecasts, region.id)
 
     if forecast is None:
-        raise ValueError(f"forecast for region {region_id} is None")
+        raise ValueError(f"forecast for region {region.id} is None")
     try:
         today_forecast = forecast.days[0]
     except IndexError as error:
