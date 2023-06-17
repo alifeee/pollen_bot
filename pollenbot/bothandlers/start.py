@@ -118,6 +118,8 @@ async def _confirm_use(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
     if query.data == _DO_NOT_INITIALISE_OPTION:
         context.user_data["reminders"] = False
+        context.user_data["region"] = None
+        context.user_data["threshold"] = None
         await query.edit_message_text(_DO_NOT_INITIALISE_MESSAGE)
         return ConversationHandler.END
 
