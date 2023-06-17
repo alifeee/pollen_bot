@@ -14,6 +14,13 @@ from pollenbot.bothandlers.unknown import unknown_command_handler
 from pollenbot.bothandlers.error import error_handler
 from pollenbot.remind import queue_reminder
 
+# I don't use this but you can use it to set commands with @botfather with /setcommands
+_ = """
+start - set up
+forecast - upcoming pollen forecast
+help - help, info & privacy information
+"""
+
 load_dotenv()
 try:
     API_KEY = os.environ["TELEGRAM_BOT_ACCESS_TOKEN"]
