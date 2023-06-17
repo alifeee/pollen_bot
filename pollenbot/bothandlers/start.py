@@ -116,6 +116,7 @@ async def _confirm_use(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         return USER_CHOOSING_REGION
 
     if query.data == _DO_NOT_INITIALISE_OPTION:
+        context.user_data["reminders"] = False
         await query.edit_message_text(_DO_NOT_INITIALISE_MESSAGE)
         return ConversationHandler.END
 
@@ -132,13 +133,12 @@ async def _confirm_region(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     regions: list[Region] = context.bot_data["regions"]
     user_region_id = query.data
+    print(user_region_id)
     user_region = next(
         (region for region in regions if region.id == user_region_id), None
     )
     if user_region is None:
         raise ValueError(f"Region ID {user_region_id} not found in regions")
-    if context.user_data is None:
-        context.user_data = {}
     context.user_data["region"] = user_region
 
     await query.edit_message_text(
