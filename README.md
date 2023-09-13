@@ -2,6 +2,8 @@
 
 This is a Telegram bot, to send you a message every time the pollen threshold reaches above a certain level.
 
+Message https://t.me/pollen_count_bot on Telegram to use. 
+
 ## Requirements
 
 | Requirement | Version |
