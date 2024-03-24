@@ -42,8 +42,9 @@ logger = logging.getLogger(__name__)
 
 def main():
     """start the bot!"""
+    this_dir = os.path.dirname(os.path.realpath(__file__))
     persistent_data = PicklePersistence(
-        filepath="bot_data.pickle",
+        filepath=os.path.join(this_dir, "bot_data.pickle"),
         store_data=PersistenceInput(user_data=True, bot_data=False),
     )
     loop = asyncio.new_event_loop()
