@@ -2,7 +2,7 @@
 
 This is a Telegram bot, to send you a message every time the pollen threshold reaches above a certain level.
 
-Message https://t.me/pollen_count_bot on Telegram to use. 
+Message <https://t.me/pollen_count_bot> on Telegram to use.
 
 ## Requirements
 
@@ -15,25 +15,19 @@ Message https://t.me/pollen_count_bot on Telegram to use.
 ### Set up environment
 
 ```bash
-python3 -m venv env
-```
-
-### Install dependencies
-
-```bash
 pip install -r requirements.txt
 ```
 
 ### Run
 
 ```bash
-python ./bot.py
+python bot.py
 ```
 
 ### Run and run scheduled tasks on startup
 
 ```bash
-python ./bot.py start
+python bot.py start
 ```
 
 ## Telegram credentials
@@ -66,63 +60,61 @@ application = Application.builder().token(API_KEY).persistence(persistent_data).
 
 ## Deploy on remote server
 
-### Set up environment on server
+### Set up environment on server (Linux)
 
 ```bash
-ssh root@...
-cd ~/python
-git clone https://github.com/alifeee/pollen_bot.git
-cd pollen_bot
+ssh alifeee@...
 sudo apt-get update
-sudo apt install python3.10-venv
+sudo apt install python3.11-venv
+cd /home/alifeee/python
+git clone git@github.com:alifeee/pollen_bot.git
+cd pollen_bot
 python3 -m venv env
-source env/bin/activate
-pip install -r requirements.txt
-tmux new -s pollen_bot
+./env/bin/pip install -r requirements.txt
 ```
 
 ### Move over secrets
 
 ```bash
-scp google_credentials.json root@...:~/python/pollen_bot/
-scp .env root@...:~/python/pollen_bot/
+scp .env alifeee@...:~/python/pollen_bot/
 ```
 
-### Run bot
+### Set up to run as a process
+
+For example, with systemd. For this, we use [`runit`](https://smarden.org/runit/). See [FAQ](https://smarden.org/runit/faq).
 
 ```bash
-ssh root@...
-tmux attach -t pollen_bot
-cd ~/python/pollen_bot
-source env/bin/activate
-python ./bot.py
-# Ctrl+B, D to detach from tmux
+mkdir /home/alifeee/python/pollen_bot/logs
+sudo mkdir /etc/sv/pollen_bot
+sudo echo '#!/bin/sh
+  #cd /home/alifeee/python/pollen_bot & ./env/bin/python3 bot.py
+  # redirect stderr to stdout
+  exec 2>&1
+  # start program
+  exec /home/alifeee/python/pollen_bot/env/bin/python3 /home/alifeee/python/pollen_bot/bot.py
+  ' > /etc/sv/pollen_bot/run
+sudo mkdir /etc/sv/pollen_bot/log
+sudo echo '#!/bin/sh
+  exec svlogd -tt /home/alifeee/python/pollen_bot/logs
+  ' > /etc/sv/pollen_bot/log/run
+sudo ln -s /etc/sv/pollen_bot /etc/service/
+
+sudo sv start pollen_bot
+sudo sv stop pollen_bot
+sudo sv status pollen_bot
+sudo sv restart pollen_bot
 ```
 
-### List tmux sessions
+#### Logs
 
-```bash
-tmux ls
-```
-
-### Attach to tmux session
-
-```bash
-tmux attach -t pollen_bot
-```
-
-### Kill tmux session
-
-```bash
-tmux kill-session -t pollen_bot
-```
+Log files are stored in the folder specified above, so for this script, they are in `~/python/pollen_bot/logs`.
 
 ### Update
 
 ```bash
-ssh root@...
+ssh alifeee@...
 cd ~/python/pollen_bot
 git pull
+sudo sv restart pollen_bot
 ```
 
-Then repeat steps in [Run](#run-bot)
