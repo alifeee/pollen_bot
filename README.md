@@ -83,6 +83,17 @@ scp .env alifeee@...:~/python/pollen_bot/
 
 ### Set up to run as a process
 
+#### With systemd
+
+```bash
+cp pollen_bot.service /etc/systemd/system/pollen_bot.service
+sudo systemctl enable pollen_bot.service
+sudo systemctl start pollen_bot.service
+sudo systemctl status pollen_bot.service
+```
+
+#### With runit
+
 For example, with systemd. For this, we use [`runit`](https://smarden.org/runit/). See [FAQ](https://smarden.org/runit/faq).
 
 ```bash
