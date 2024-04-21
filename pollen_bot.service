@@ -3,8 +3,11 @@ Description=Pollen bot using Telegram
 After=network.target
 
 [Service]
-ExecStart=/root/python/pollen_bot/env/bin/python bot.py
-WorkingDirectory=/root/python/pollen_bot
+User=pollen_bot
+Group=pollen_bot
+
+ExecStart=/usr/alifeee/pollen_bot/env/bin/python bot.py
+WorkingDirectory=/usr/alifeee/pollen_bot
 
 Restart=always
 RestartSec=10

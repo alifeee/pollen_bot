@@ -68,17 +68,24 @@ application = Application.builder().token(API_KEY).persistence(persistent_data).
 ssh alifeee@...
 sudo apt-get update
 sudo apt install python3.11-venv
-cd /home/alifeee/python
+sudo mkdir -p /usr/alifeee
+sudo chown alifeee:alifeee /usr/alifeee
+cd /usr/alifeee
 git clone git@github.com:alifeee/pollen_bot.git
-cd pollen_bot
+sudo adduser --system --no-create-home --group pollen_bot
+# sudo cat /etc/group
+# sudo cat /etc/passwd
+# sudo -u pollen_bot whoami
 python3 -m venv env
 ./env/bin/pip install -r requirements.txt
+sudo chown -R alifeee:pollen_bot .
 ```
 
 ### Move over secrets
 
 ```bash
 scp .env alifeee@...:~/python/pollen_bot/
+sudo chown -R alifeee:pollen_bot .env
 ```
 
 ### Set up to run as a process
@@ -94,7 +101,7 @@ sudo systemctl status pollen_bot.service
 
 #### With runit
 
-For example, with systemd. For this, we use [`runit`](https://smarden.org/runit/). See [FAQ](https://smarden.org/runit/faq).
+[`runit`](https://smarden.org/runit/) is a bit like systemd. See [FAQ](https://smarden.org/runit/faq).
 
 ```bash
 mkdir /home/alifeee/python/pollen_bot/logs
