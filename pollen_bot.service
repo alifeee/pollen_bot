@@ -6,7 +6,7 @@ After=network.target
 User=pollen_bot
 Group=pollen_bot
 
-ExecStart=/usr/alifeee/pollen_bot/env/bin/python bot.py
+ExecStart=/usr/alifeee/pollen_bot/env/bin/python /usr/alifeee/pollen_bot/bot.py
 WorkingDirectory=/usr/alifeee/pollen_bot
 
 Restart=always
